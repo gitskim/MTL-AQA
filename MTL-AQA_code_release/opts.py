@@ -25,11 +25,12 @@ dataset_frames_dir = '...'
 sample_length = 103
 
 # input data dims; C3D-AVG:112; MSCADC: 180
-C, H, W = 3,180,180#3,112,112#
+C, H, W = 3, 180, 180  # 3,112,112#
 # image resizing dims; C3D-AVG: 171,128; MSCADC: 640,360
-input_resize = 640,360#171,128#
+input_resize = 640, 360  # 171,128#
 # temporal augmentation range
-temporal_aug_min = -3; temporal_aug_max = 3
+temporal_aug_min = -3;
+temporal_aug_max = 3
 
 # score std
 final_score_std = 17
@@ -41,23 +42,28 @@ vocab_size = 5779
 
 caption_lstm_dim_hidden = 512
 caption_lstm_dim_word = 512
-caption_lstm_dim_vid = 1200#8192# C3D-AVG: 8192; MSCADC: 1200
+caption_lstm_dim_vid = 1200  # 8192# C3D-AVG: 8192; MSCADC: 1200
 caption_lstm_cell_type = 'gru'
 caption_lstm_num_layers = 2
 caption_lstm_dropout = 0.5
 caption_lstm_lr = 0.0001
 
 # task 2 include
-with_dive_classification = True
-with_caption = True
+with_dive_classification = False
+with_caption = False
 
 max_epochs = 100
 
 train_batch_size = 3
 test_batch_size = 5
 
-model_ckpt_interval = 1 # in epochs
+model_ckpt_interval = 1  # in epochs
 
 base_learning_rate = 0.0001
 
 temporal_stride = 16
+
+m1_path = '/Users/suhyunkim/git/MTL-AQA/MTL-AQA_code_release/models/C3DAVG/model_CNN_94.pth'
+m2_path = '/Users/suhyunkim/git/MTL-AQA/MTL-AQA_code_release/models/C3DAVG/model_my_fc6_94.pth'
+m3_path = '/Users/suhyunkim/git/MTL-AQA/MTL-AQA_code_release/models/C3DAVG/model_score_regressor_94.pth'
+m4_path = '/Users/suhyunkim/git/MTL-AQA/MTL-AQA_code_release/models/C3DAVG/model_dive_classifier_94.pth'
