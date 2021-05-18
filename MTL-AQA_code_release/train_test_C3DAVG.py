@@ -237,7 +237,7 @@ if __name__ == '__main__':
 
     # loading our score regressor
     model_score_regressor = score_regressor()
-    model_score_regressor = model_score_regressor.load_state_dict(torch.load(m3_path, map_location={'cuda:0': 'cpu'}))
+    model_score_regressor.load_state_dict(torch.load(m3_path, map_location={'cuda:0': 'cpu'}))
     print('Using Final Score Loss')
 
     if with_dive_classification:
