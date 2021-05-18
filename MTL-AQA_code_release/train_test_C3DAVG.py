@@ -143,8 +143,10 @@ def test_phase(test_dataloader):
         if with_caption:
             model_caption.eval()
 
+        print("data")
         for data in test_dataloader:
             # true_scores.extend(data['label_final_score'].data.numpy())
+            print("data loader")
             if with_dive_classification:
                 true_position.extend(data['label_position'].numpy())
                 true_armstand.extend(data['label_armstand'].numpy())
@@ -157,7 +159,9 @@ def test_phase(test_dataloader):
             clip_feats = torch.Tensor([])
 
             clip = video[:, :, :, :, :]
+            print(f"clip: P{len(clip)}")
             clip_feats_temp = model_CNN(clip)
+            print(f"clip_feats_temp: P{len(clip_feats_temp)}")
             clip_feats_temp.unsqueeze_(0)
             clip_feats_temp.transpose_(0, 1)
             clip_feats = torch.cat((clip_feats, clip_feats_temp), 1)
