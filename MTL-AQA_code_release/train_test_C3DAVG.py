@@ -144,9 +144,12 @@ def test_phase(test_dataloader):
             model_caption.eval()
 
         print("data")
+        prev_data = None
         for data in test_dataloader:
             # true_scores.extend(data['label_final_score'].data.numpy())
             print("data loader")
+            print(prev_data is data)
+            prev_data = data
             if with_dive_classification:
                 true_position.extend(data['label_position'].numpy())
                 true_armstand.extend(data['label_armstand'].numpy())
