@@ -122,7 +122,7 @@ def test_phase(test_dataloader):
     print('In testphase...')
     with torch.no_grad():
         pred_scores = [];
-        true_scores = []
+        # true_scores = []
         if with_dive_classification:
             pred_position = [];
             pred_armstand = [];
@@ -144,7 +144,7 @@ def test_phase(test_dataloader):
             model_caption.eval()
 
         for data in test_dataloader:
-            true_scores.extend(data['label_final_score'].data.numpy())
+            # true_scores.extend(data['label_final_score'].data.numpy())
             if with_dive_classification:
                 true_position.extend(data['label_position'].numpy())
                 true_armstand.extend(data['label_armstand'].numpy())
@@ -209,10 +209,10 @@ def test_phase(test_dataloader):
             print('Accuracies: Position: ', position_accu, ' Armstand: ', armstand_accu, ' Rot_type: ', rot_type_accu,
                   ' SS_no: ', ss_no_accu, ' TW_no: ', tw_no_accu)
 
-        rho, p = stats.spearmanr(pred_scores, true_scores)
+        # rho, p = stats.spearmanr(pred_scores, true_scores)
         print('Predicted scores: ', pred_scores)
-        print('True scores: ', true_scores)
-        print('Correlation: ', rho)
+        # print('True scores: ', true_scores)
+        # print('Correlation: ', rho)
 
 
 def main():
