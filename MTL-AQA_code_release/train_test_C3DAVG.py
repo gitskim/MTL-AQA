@@ -216,45 +216,9 @@ def test_phase(test_dataloader):
 
 
 def main():
-    parameters_2_optimize = (list(model_CNN.parameters()) + list(model_my_fc6.parameters()) +
-                             list(model_score_regressor.parameters()))
-    parameters_2_optimize_named = (list(model_CNN.named_parameters()) + list(model_my_fc6.named_parameters()) +
-                                   list(model_score_regressor.named_parameters()))
-    if with_dive_classification:
-        parameters_2_optimize = parameters_2_optimize + list(model_dive_classifier.parameters())
-        parameters_2_optimize_named = parameters_2_optimize_named + list(model_dive_classifier.named_parameters())
-    if with_caption:
-        parameters_2_optimize = parameters_2_optimize + list(model_caption.parameters())
-        parameters_2_optimize_named = parameters_2_optimize_named + list(model_caption.named_parameters())
-
-    optimizer = optim.Adam(parameters_2_optimize, lr=0.0001)
-    print('Parameters that will be learnt: ', parameters_2_optimize_named)
-
-    criterions = {}
-    criterion_final_score = nn.MSELoss()
-    penalty_final_score = nn.L1Loss()
-    criterions['criterion_final_score'] = criterion_final_score
-    criterions['penalty_final_score'] = penalty_final_score
-    if with_dive_classification:
-        criterion_dive_classifier = nn.CrossEntropyLoss()
-        criterions['criterion_dive_classifier'] = criterion_dive_classifier
-    if with_caption:
-        criterion_caption = utils_1.LanguageModelCriterion()
-        criterions['criterion_caption'] = criterion_caption
-
-    train_dataset = VideoDataset('train')
     test_dataset = VideoDataset('test')
-    train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False)
-    print('Length of train loader: ', len(train_dataloader))
     print('Length of test loader: ', len(test_dataloader))
-    print('Training set size: ', len(train_dataloader) * train_batch_size,
-          ';    Test set size: ', len(test_dataloader) * test_batch_size)
-
-    # actual training, testing loops
-    for param_group in optimizer.param_groups:
-        print('Current learning rate: ', param_group['lr'])
-
     test_phase(test_dataloader)
 
 
