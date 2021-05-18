@@ -156,12 +156,11 @@ def test_phase(test_dataloader):
             batch_size, C, frames, H, W = video.shape
             clip_feats = torch.Tensor([])
 
-            for i in np.arange(0, frames - 17, 16):
-                clip = video[:, :, i:i + 16, :, :]
-                clip_feats_temp = model_CNN(clip)
-                clip_feats_temp.unsqueeze_(0)
-                clip_feats_temp.transpose_(0, 1)
-                clip_feats = torch.cat((clip_feats, clip_feats_temp), 1)
+            clip = video[:, :, :, :, :]
+            clip_feats_temp = model_CNN(clip)
+            clip_feats_temp.unsqueeze_(0)
+            clip_feats_temp.transpose_(0, 1)
+            clip_feats = torch.cat((clip_feats, clip_feats_temp), 1)
             clip_feats_avg = clip_feats.mean(1)
 
             sample_feats_fc6 = model_my_fc6(clip_feats_avg)
