@@ -96,7 +96,7 @@ class VideoDataset(Dataset):
         if self.mode == 'train':
             temporal_aug_shift = random.randint(temporal_aug_min, temporal_aug_max)
             end_frame = end_frame + temporal_aug_shift
-        start_frame = end_frame - sample_length # presently using sample_length number of frames
+        start_frame = 0 # presently using sample_length number of frames
 
         # spatial augmentation
         if self.mode == 'train':
