@@ -22,7 +22,7 @@ anno_n_splits_dir = dataset_dir + 'MTL-AQA_split_0_data'
 dataset_frames_dir = '/Users/suhyunkim/git/MTL-AQA/frames/'
 
 # sample length in terms of no of frames
-sample_length = 103
+sample_length = 20
 
 # input data dims; C3D-AVG:112; MSCADC: 180
 C, H, W = 3,112,112#
@@ -42,7 +42,7 @@ vocab_size = 5779
 
 caption_lstm_dim_hidden = 512
 caption_lstm_dim_word = 512
-caption_lstm_dim_vid = 1200  # 8192# C3D-AVG: 8192; MSCADC: 1200
+caption_lstm_dim_vid = 8192 #MSCADC: 1200
 caption_lstm_cell_type = 'gru'
 caption_lstm_num_layers = 2
 caption_lstm_dropout = 0.5
