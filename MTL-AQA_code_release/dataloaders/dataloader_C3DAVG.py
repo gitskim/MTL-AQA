@@ -145,4 +145,4 @@ class VideoDataset(Dataset):
 
     def __len__(self):
         sample_pool = len(self.keys)
-        return sample_pool
+        return sample_size
