@@ -25,6 +25,7 @@ from models.C3DAVG.S2VTModel import S2VTModel
 from opts import *
 from utils import utils_1
 import numpy as np
+import streamlit as st
 
 torch.manual_seed(randomseed);
 torch.cuda.manual_seed_all(randomseed);
@@ -228,6 +229,11 @@ def main():
 
 if __name__ == '__main__':
     # loading the altered C3D backbone (ie C3D upto before fc-6)
+    st.title("Olympics diving")
+    video_file = st.file_uploader("Upload a video", type=['mp4'])
+    if video_file is not None:
+        file_details = {"Filename": video_file.name, "FileType": video_file.type, "FileSize": video_file.size}
+
     model_CNN_pretrained_dict = torch.load('c3d.pickle')
     model_CNN = C3D_altered()
     model_CNN_dict = model_CNN.state_dict()
