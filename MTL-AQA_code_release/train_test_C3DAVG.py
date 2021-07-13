@@ -178,7 +178,7 @@ if __name__ == '__main__':
         rem = len(frames) % 16
         rem = 16 - rem
 
-        if rem is not 0:
+        if rem != 0:
             padding = np.zeros((rem, C, H, H))
             print(padding.shape)
             frames = np.vstack((frames, padding))
@@ -186,14 +186,9 @@ if __name__ == '__main__':
         frames = np.expand_dims(frames, axis=0)
         print(f"frames shape: {frames.shape}")
         # frames shape: (137, 3, 112, 112)
-        # suhyun frames : (137, 1080, 1920, 3)
 
-        model_CNN_pretrained_dict = torch.load('c3d.pickle')
         model_CNN = C3D_altered()
-        model_CNN_dict = model_CNN.state_dict()
-        model_CNN_pretrained_dict = {k: v for k, v in model_CNN_pretrained_dict.items() if k in model_CNN_dict}
-        model_CNN_dict.update(model_CNN_pretrained_dict)
-        model_CNN.load_state_dict(model_CNN_dict)
+        model_CNN.load_state_dict(torch.load(m1_path, map_location={'cuda:0': 'cpu'}))
 
         # loading our fc6 layer
         model_my_fc6 = my_fc6()
@@ -224,29 +219,42 @@ if __name__ == '__main__':
             model_my_fc6.eval()
             model_score_regressor.eval()
 
-            # true_scores.extend(data['label_final_score'].data.numpy())
-
-            # batch_size, C, frames, H, W = video.shape
-            # frames shape: (137, 3, 112, 112)
-            # frames shape: (1, 137, 3, 112, 112)
             for video in frames:
-                print(f"video shape: {video.shape}")
+                print(f"video shape: {video.shape}") # video shape: torch.Size([1, 144, 3, 112, 112])
                 video = video.transpose_(1, 2)
                 video = video.double()
                 clip_feats = torch.Tensor([])
                 for i in np.arange(0, len(video), 16):
                     print(i)
                     clip = video[i:i + 16, :, :, :]
-                    print(f"clip shape: {clip.shape}")
-                    print(f"clip type: {clip.type()}")
+                    print(f"clip shape: {clip.shape}") # clip shape: torch.Size([1, 3, 144, 112, 112])
+                    print(f"clip type: {clip.type()}") # clip type: torch.DoubleTensor
                     model_CNN = model_CNN.double()
                     clip_feats_temp = model_CNN(clip)
+
+                    print(f"clip_feats_temp shape: {clip_feats_temp.shape}")
+                    # clip_feats_temp shape: torch.Size([9, 8192])
+
                     clip_feats_temp.unsqueeze_(0)
+
+                    print(f"clip_feats_temp unsqueeze shape: {clip_feats_temp.shape}")
+                    # clip_feats_temp unsqueeze shape: torch.Size([1, 9, 8192])
+
                     clip_feats_temp.transpose_(0, 1)
+
+                    print(f"clip_feats_temp transposes shape: {clip_feats_temp.shape}")
+                    # clip_feats_temp transposes shape: torch.Size([9, 1, 8192])
+
                     clip_feats = torch.cat((clip_feats, clip_feats_temp), 1)
 
-                print(clip_feats)
+                    print(f"clip_feats shape: {clip_feats.shape}")
+                    # clip_feats shape: torch.Size([9, 1, 8192])
+
                 clip_feats_avg = clip_feats.mean(1)
+
+                print(f"clip_feats_avg shape: {clip_feats_avg.shape}") # clip_feats_avg shape: torch.Size([9, 8192])
+                # clip_feats_avg shape: torch.Size([9, 8192])
+
                 model_my_fc6 = model_my_fc6.double()
                 sample_feats_fc6 = model_my_fc6(clip_feats_avg)
                 model_score_regressor = model_score_regressor.double()
