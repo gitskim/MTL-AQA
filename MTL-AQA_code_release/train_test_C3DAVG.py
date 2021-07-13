@@ -26,6 +26,11 @@ from opts import *
 from utils import utils_1
 import numpy as np
 import streamlit as st
+import subprocess
+import os
+import cv2 as cv
+import tempfile
+from torchvision import transforms
 
 torch.manual_seed(randomseed);
 torch.cuda.manual_seed_all(randomseed);
@@ -119,150 +124,136 @@ def train_phase(train_dataloader, optimizer, criterions, epoch):
         iteration += 1
 
 
-def test_phase(test_dataloader):
-    print('In testphase...')
-    with torch.no_grad():
-        pred_scores = [];
-        # true_scores = []
-        if with_dive_classification:
-            pred_position = [];
-            pred_armstand = [];
-            pred_rot_type = [];
-            pred_ss_no = [];
-            pred_tw_no = []
-            true_position = [];
-            true_armstand = [];
-            true_rot_type = [];
-            true_ss_no = [];
-            true_tw_no = []
+def center_crop(img, dim):
+  """Returns center cropped image
 
-        model_CNN.eval()
-        model_my_fc6.eval()
-        model_score_regressor.eval()
-        if with_dive_classification:
-            model_dive_classifier.eval()
-        if with_caption:
-            model_caption.eval()
-
-        print("data")
-        prev_data = None
-        for data in test_dataloader:
-            # true_scores.extend(data['label_final_score'].data.numpy())
-            print("data loader")
-            print(prev_data is data)
-            prev_data = data
-            if with_dive_classification:
-                true_position.extend(data['label_position'].numpy())
-                true_armstand.extend(data['label_armstand'].numpy())
-                true_rot_type.extend(data['label_rot_type'].numpy())
-                true_ss_no.extend(data['label_ss_no'].numpy())
-                true_tw_no.extend(data['label_tw_no'].numpy())
-            video = data['video'].transpose_(1, 2)
-
-            batch_size, C, frames, H, W = video.shape
-            clip_feats = torch.Tensor([])
-            for i in np.arange(0, frames - 17, 16):
-                clip = video[:, :, i:i + 16, :, :]
-                clip_feats_temp = model_CNN(clip)
-                clip_feats_temp.unsqueeze_(0)
-                clip_feats_temp.transpose_(0, 1)
-                clip_feats = torch.cat((clip_feats, clip_feats_temp), 1)
-            clip_feats_avg = clip_feats.mean(1)
-
-            sample_feats_fc6 = model_my_fc6(clip_feats_avg)
-            temp_final_score = model_score_regressor(sample_feats_fc6)
-            pred_scores.extend([element[0] for element in temp_final_score.data.cpu().numpy()])
-            if with_dive_classification:
-                temp_position, temp_armstand, temp_rot_type, temp_ss_no, temp_tw_no = model_dive_classifier(
-                    sample_feats_fc6)
-                softmax_layer = nn.Softmax(dim=1)
-                temp_position = softmax_layer(temp_position).data.cpu().numpy()
-                temp_armstand = softmax_layer(temp_armstand).data.cpu().numpy()
-                temp_rot_type = softmax_layer(temp_rot_type).data.cpu().numpy()
-                temp_ss_no = softmax_layer(temp_ss_no).data.cpu().numpy()
-                temp_tw_no = softmax_layer(temp_tw_no).data.cpu().numpy()
-
-                for i in range(len(temp_position)):
-                    pred_position.extend(np.argwhere(temp_position[i] == max(temp_position[i]))[0])
-                    pred_armstand.extend(np.argwhere(temp_armstand[i] == max(temp_armstand[i]))[0])
-                    pred_rot_type.extend(np.argwhere(temp_rot_type[i] == max(temp_rot_type[i]))[0])
-                    pred_ss_no.extend(np.argwhere(temp_ss_no[i] == max(temp_ss_no[i]))[0])
-                    pred_tw_no.extend(np.argwhere(temp_tw_no[i] == max(temp_tw_no[i]))[0])
-
-        if with_dive_classification:
-            position_correct = 0;
-            armstand_correct = 0;
-            rot_type_correct = 0;
-            ss_no_correct = 0;
-            tw_no_correct = 0
-            for i in range(len(pred_position)):
-                if pred_position[i] == true_position[i]:
-                    position_correct += 1
-                if pred_armstand[i] == true_armstand[i]:
-                    armstand_correct += 1
-                if pred_rot_type[i] == true_rot_type[i]:
-                    rot_type_correct += 1
-                if pred_ss_no[i] == true_ss_no[i]:
-                    ss_no_correct += 1
-                if pred_tw_no[i] == true_tw_no[i]:
-                    tw_no_correct += 1
-            position_accu = position_correct / len(pred_position) * 100
-            armstand_accu = armstand_correct / len(pred_armstand) * 100
-            rot_type_accu = rot_type_correct / len(pred_rot_type) * 100
-            ss_no_accu = ss_no_correct / len(pred_ss_no) * 100
-            tw_no_accu = tw_no_correct / len(pred_tw_no) * 100
-            print('Accuracies: Position: ', position_accu, ' Armstand: ', armstand_accu, ' Rot_type: ', rot_type_accu,
-                  ' SS_no: ', ss_no_accu, ' TW_no: ', tw_no_accu)
-
-        # rho, p = stats.spearmanr(pred_scores, true_scores)
-        print('Predicted scores: ', pred_scores)
-        # print('True scores: ', true_scores)
-        # print('Correlation: ', rho)
-
-
-def main():
-    test_dataset = VideoDataset('test')
-    test_dataloader = DataLoader(test_dataset, batch_size=test_batch_size, shuffle=False)
-    print('Length of test loader: ', len(test_dataloader))
-    test_phase(test_dataloader)
+  Args:Image Scaling
+  img: image to be center cropped
+  dim: dimensions (width, height) to be cropped from center
+  """
+  width, height = img.shape[1], img.shape[0]
+  #process crop width and height for max available dimension
+  crop_width = dim[0] if dim[0]<img.shape[1] else img.shape[1]
+  crop_height = dim[1] if dim[1]<img.shape[0] else img.shape[0]
+  mid_x, mid_y = int(width/2), int(height/2)
+  cw2, ch2 = int(crop_width/2), int(crop_height/2)
+  crop_img = img[mid_y-ch2:mid_y+ch2, mid_x-cw2:mid_x+cw2]
+  return crop_img
 
 
 if __name__ == '__main__':
     # loading the altered C3D backbone (ie C3D upto before fc-6)
     st.title("Olympics diving")
-    video_file = st.file_uploader("Upload a video", type=['mp4'])
+    video_file = st.file_uploader("Upload a video")
+
+    # transforms.CenterCrop(H),
+
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
     if video_file is not None:
-        file_details = {"Filename": video_file.name, "FileType": video_file.type, "FileSize": video_file.size}
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        tfile.write(video_file.read())
 
-    model_CNN_pretrained_dict = torch.load('c3d.pickle')
-    model_CNN = C3D_altered()
-    model_CNN_dict = model_CNN.state_dict()
-    model_CNN_pretrained_dict = {k: v for k, v in model_CNN_pretrained_dict.items() if k in model_CNN_dict}
-    model_CNN_dict.update(model_CNN_pretrained_dict)
-    model_CNN.load_state_dict(model_CNN_dict)
+        vf = cv.VideoCapture(tfile.name)
 
-    # loading our fc6 layer
-    model_my_fc6 = my_fc6()
-    model_my_fc6.load_state_dict(torch.load(m2_path, map_location={'cuda:0': 'cpu'}))
+        # https: // discuss.streamlit.io / t / how - to - access - uploaded - video - in -streamlit - by - open - cv / 5831 / 8
+        frames = None
+        while vf.isOpened():
+            ret, frame = vf.read()
+            if not ret:
+                break
+            frame = cv.resize(frame, input_resize, interpolation=cv.INTER_LINEAR) #frame resized: (128, 171, 3)
+            frame = center_crop(frame, (H, H))
+            frame = transform(frame).unsqueeze(0)
+            if frames is not None:
+                frame = np.vstack((frames, frame))
+                frames = frame
+            else:
+                frames = frame
 
-    # loading our score regressor
-    model_score_regressor = score_regressor()
-    model_score_regressor.load_state_dict(torch.load(m3_path, map_location={'cuda:0': 'cpu'}))
-    print('Using Final Score Loss')
 
-    if with_dive_classification:
-        # loading our dive classifier
-        model_dive_classifier = dive_classifier()
-        model_dive_classifier.load_state_dict(torch.load(m4_path, map_location={'cuda:0': 'cpu'}))
-        print('Using Dive Classification Loss')
+        vf.release()
+        cv.destroyAllWindows()
+        rem = len(frames) % 16
+        rem = 16 - rem
 
-    if with_caption:
-        # loading our caption model
-        model_caption = S2VTModel(vocab_size, max_cap_len, caption_lstm_dim_hidden,
-                                  caption_lstm_dim_word, caption_lstm_dim_vid,
-                                  rnn_cell=caption_lstm_cell_type, n_layers=caption_lstm_num_layers,
-                                  rnn_dropout_p=caption_lstm_dropout)
-        model_caption = model_caption
-        print('Using Captioning Loss')
+        if rem is not 0:
+            padding = np.zeros((rem, C, H, H))
+            print(padding.shape)
+            frames = np.vstack((frames, padding))
 
-    main()
+        frames = np.expand_dims(frames, axis=0)
+        print(f"frames shape: {frames.shape}")
+        # frames shape: (137, 3, 112, 112)
+        # suhyun frames : (137, 1080, 1920, 3)
+
+        model_CNN_pretrained_dict = torch.load('c3d.pickle')
+        model_CNN = C3D_altered()
+        model_CNN_dict = model_CNN.state_dict()
+        model_CNN_pretrained_dict = {k: v for k, v in model_CNN_pretrained_dict.items() if k in model_CNN_dict}
+        model_CNN_dict.update(model_CNN_pretrained_dict)
+        model_CNN.load_state_dict(model_CNN_dict)
+
+        # loading our fc6 layer
+        model_my_fc6 = my_fc6()
+        model_my_fc6.load_state_dict(torch.load(m2_path, map_location={'cuda:0': 'cpu'}))
+
+        # loading our score regressor
+        model_score_regressor = score_regressor()
+        model_score_regressor.load_state_dict(torch.load(m3_path, map_location={'cuda:0': 'cpu'}))
+        print('Using Final Score Loss')
+
+        frames = DataLoader(frames, batch_size=test_batch_size, shuffle=False)
+        with torch.no_grad():
+            pred_scores = [];
+            # true_scores = []
+            if with_dive_classification:
+                pred_position = [];
+                pred_armstand = [];
+                pred_rot_type = [];
+                pred_ss_no = [];
+                pred_tw_no = []
+                true_position = [];
+                true_armstand = [];
+                true_rot_type = [];
+                true_ss_no = [];
+                true_tw_no = []
+
+            model_CNN.eval()
+            model_my_fc6.eval()
+            model_score_regressor.eval()
+
+            # true_scores.extend(data['label_final_score'].data.numpy())
+
+            # batch_size, C, frames, H, W = video.shape
+            # frames shape: (137, 3, 112, 112)
+            # frames shape: (1, 137, 3, 112, 112)
+            for video in frames:
+                print(f"video shape: {video.shape}")
+                video = video.transpose_(1, 2)
+                video = video.double()
+                clip_feats = torch.Tensor([])
+                for i in np.arange(0, len(video), 16):
+                    print(i)
+                    clip = video[i:i + 16, :, :, :]
+                    print(f"clip shape: {clip.shape}")
+                    print(f"clip type: {clip.type()}")
+                    model_CNN = model_CNN.double()
+                    clip_feats_temp = model_CNN(clip)
+                    clip_feats_temp.unsqueeze_(0)
+                    clip_feats_temp.transpose_(0, 1)
+                    clip_feats = torch.cat((clip_feats, clip_feats_temp), 1)
+
+                print(clip_feats)
+                clip_feats_avg = clip_feats.mean(1)
+                model_my_fc6 = model_my_fc6.double()
+                sample_feats_fc6 = model_my_fc6(clip_feats_avg)
+                model_score_regressor = model_score_regressor.double()
+                temp_final_score = model_score_regressor(sample_feats_fc6)
+                pred_scores.extend([element[0] for element in temp_final_score.data.cpu().numpy()])
+
+                # rho, p = stats.spearmanr(pred_scores, true_scores)
+                print('Predicted scores: ', pred_scores)
+            # print('True scores: ', true_scores)
+            # print('Correlation: ', rho)

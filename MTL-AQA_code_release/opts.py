@@ -22,7 +22,7 @@ anno_n_splits_dir = dataset_dir + 'MTL-AQA_split_0_data'
 dataset_frames_dir = '/Users/suhyunkim/git/MTL-AQA/frames/'
 
 # sample length in terms of no of frames
-sample_length = 20
+sample_length = 20# at least 96 for C3D
 
 # input data dims; C3D-AVG:112; MSCADC: 180
 C, H, W = 3,112,112#
