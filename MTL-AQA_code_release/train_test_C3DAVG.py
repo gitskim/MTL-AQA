@@ -226,8 +226,8 @@ if __name__ == '__main__':
                 clip_feats = torch.Tensor([])
                 for i in np.arange(0, len(video), 16):
                     print(i)
-                    clip = video[i:i + 16, :, :, :]
-                    print(f"clip shape: {clip.shape}") # clip shape: torch.Size([1, 3, 144, 112, 112])
+                    clip = video[:, :, i:i + 16, :, :]
+                    print(f"clip shape: {clip.shape}") # clip shape: torch.Size([1, 3, 16, 112, 112])
                     print(f"clip type: {clip.type()}") # clip type: torch.DoubleTensor
                     model_CNN = model_CNN.double()
                     clip_feats_temp = model_CNN(clip)
